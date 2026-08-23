@@ -4,6 +4,14 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173
+    host: '0.0.0.0',
+    port: 5173,
+    allowedHosts: [
+      'inventory.futurezminds.in',
+      'www.inventory.futurezminds.in',
+      'localhost',
+      '127.0.0.1',
+      '13.235.180.162'
+    ]
   }
 })

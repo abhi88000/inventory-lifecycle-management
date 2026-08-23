@@ -1,4 +1,11 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8081/api'
+const API_BASE = import.meta.env.VITE_API_BASE || (
+  typeof window !== 'undefined'
+    ? (window.location.hostname.toLowerCase().includes('futurezminds')
+        ? `${window.location.protocol}//${window.location.hostname}/api`
+        : 'https://inventory.futurezminds.in/api')
+    : 'https://inventory.futurezminds.in/api'
+)
+
 function tenantHeader() {
   const t = localStorage.getItem('tenant') || 'default_tenant'
   return { 'X-Tenant-ID': t }
@@ -42,6 +49,9 @@ export async function fetchRolls(){
 
 export async function createRoll(payload:any){
   const res = await fetch(`${API_BASE}/rolls`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...tenantHeader() }, body: JSON.stringify(payload) })
-  if (!res.ok) throw new Error('Failed to create roll')
+  if (!res.ok) { const t = await res.text().catch(()=>''); throw new Error(t || 'Failed to create roll') }
   return res.json()
 }
+
+export function setTenant(t: string) { localStorage.setItem('tenant', t) }
+export function getTenant() { return localStorage.getItem('tenant') || 'default_tenant' }

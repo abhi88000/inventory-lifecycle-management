@@ -2,12 +2,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.example</groupId>
-    <artifactId>production</artifactId>
+    <groupId>com.futurezminds</groupId>
+    <artifactId>inventory-lifecycle-management</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>production</name>
-    <description>Garment production &amp; lot tracking system - backend</description>
+    <name>inventory-lifecycle-management</name>
+    <description>Inventory lifecycle management for garment production and lot tracking</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>

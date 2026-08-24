@@ -7,8 +7,20 @@ const API_BASE = import.meta.env.VITE_API_BASE || (
 )
 
 function tenantHeader() {
-  const t = localStorage.getItem('tenant') || 'default_tenant'
+  const t = getTenant()
   return { 'X-Tenant-ID': t }
+}
+
+export function setTenant(t: string) {
+  const value = (t || 'demo').trim() || 'demo'
+  localStorage.setItem('tenant', value)
+}
+
+export function getTenant() {
+  const saved = localStorage.getItem('tenant')
+  const value = (saved || 'demo').trim() || 'demo'
+  if (!saved) localStorage.setItem('tenant', value)
+  return value
 }
 
 export async function fetchLots() {
@@ -53,5 +65,3 @@ export async function createRoll(payload:any){
   return res.json()
 }
 
-export function setTenant(t: string) { localStorage.setItem('tenant', t) }
-export function getTenant() { return localStorage.getItem('tenant') || 'default_tenant' }

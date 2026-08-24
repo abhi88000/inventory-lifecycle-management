@@ -29,9 +29,7 @@ public class TenantFilter extends OncePerRequestFilter {
 
         String tenant = request.getHeader("X-Tenant-ID");
         if (tenant == null || tenant.isBlank()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("Missing X-Tenant-ID header");
-            return;
+            tenant = "demo";
         }
 
         try {

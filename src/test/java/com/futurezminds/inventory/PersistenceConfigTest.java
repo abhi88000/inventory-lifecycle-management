@@ -1,24 +1,26 @@
 package com.futurezminds.inventory;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.env.Environment;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
 class PersistenceConfigTest {
 
-    @Autowired
-    private Environment environment;
-
     @Test
-    void usesPersistentFileDatabaseAndUpdateMode() {
-        String url = environment.getProperty("spring.datasource.url");
-        String ddlAuto = environment.getProperty("spring.jpa.hibernate.ddl-auto");
+    void usesPostgresAndFlywayDefaults() throws IOException {
+        Properties props = new Properties();
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("application.properties")) {
+            assertThat(in).isNotNull();
+            props.load(in);
+        }
 
-        assertThat(url).contains("jdbc:h2:file:");
-        assertThat(ddlAuto).isEqualTo("update");
+        assertThat(props.getProperty("spring.datasource.url")).contains("jdbc:postgresql://");
+        assertThat(props.getProperty("spring.datasource.driver-class-name")).isEqualTo("org.postgresql.Driver");
+        assertThat(props.getProperty("spring.flyway.enabled")).isEqualTo("true");
+        assertThat(props.getProperty("spring.jpa.hibernate.ddl-auto")).isEqualTo("validate");
     }
 }

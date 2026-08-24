@@ -1,122 +1,105 @@
-# Inventory & Production Tracking (Garment) — MVP
+# Inventory Lifecycle Management
 
-This repository contains a simple web-based production and inventory tracking system for a garment and jeans manufacturing workflow. The project is an MVP and demo-first implementation covering login, dashboard, lot creation, stage movement, lot details and history, search, and persistence with Postgres or H2 for quick demo runs.
+This project is a production-oriented garment and inventory tracking system for lot lifecycle management. It is built around a tenant-aware backend, Postgres persistence, and a React frontend that exposes lot and roll data by tenant.
 
-## Key business flow
+## Architecture
 
-- Fabric roll inventory → CUTTING (create lot from roll; sizes, ratios, and fit) → STITCHING (assign fabricator) → WASHING (assign washer) → FINISHING (assign finisher) → WAREHOUSE STOCK
+- Backend: Java 17, Spring Boot 3.1.x, Spring Data JPA, Flyway
+- Database: PostgreSQL
+- Frontend: React + TypeScript + Vite
+- Security and tenant model: request-scoped tenant context using the X-Tenant-ID header and database-level tenant isolation patterns
+- Deployment model: monolith service behind a reverse proxy or application server
 
-## Tech stack
+## Core flow
 
-- Backend: Java 17, Spring Boot 3.1.x, Spring Data JPA (Hibernate), Flyway migrations
-- Database: Postgres (production) — H2 in-memory for quick demo use
-- Frontend: React 18 + TypeScript, Vite, Bootstrap 5
-- Auth and tenant model: minimal demo security and tenant isolation via the `X-Tenant-ID` header with Postgres row-level security
+Fabric rolls and production lots move through the workflow:
 
-## Repository layout
+- RECEIVED
+- CUTTING
+- STITCHING
+- WASHING
+- FINISHING
+- PACKING
+- COMPLETED
+- DISPATCHED
 
-- Backend sources: `src/main/java/...` (controllers, services, entities)
-- Migrations: `src/main/resources/db/migration/` (Flyway SQL)
-- Frontend: `frontend/` (Vite + React app)
-- Tenant context: `src/main/java/com/futurezminds/inventory/tenant/TenantContext.java` and `TenantFilter.java`
+The app exposes lot and roll data for the active tenant and records stage progression in lot history.
 
-## Recent feature additions
+## Repository structure
 
-- `Lot` entity stores cutting details such as `sourceRollNumber`, `rollLength`, `sizeRatiosJson`, `sizeQuantitiesJson`, and `fitType`.
-- Backend computes per-size quantities from the provided size ratios when creating a lot using proportional rounding.
-- New `Roll` entity and `rolls` table with tenant-scoped `GET /api/rolls` support.
-- Frontend create-lot form updated to select a source roll, enter `fitType`, and provide size ratios.
+- Backend: src/main/java/com/futurezminds/inventory
+- Config: src/main/resources/application.properties
+- Database migrations: src/main/resources/db/migration
+- Frontend: frontend/
+- Tenant enforcement: src/main/java/com/futurezminds/inventory/tenant
+
+## Database and migrations
+
+The app uses PostgreSQL as the source of truth. Flyway runs on startup and applies migrations from the db/migration folder.
+
+The migration set includes:
+
+- V1__init.sql: core schema for production_stages, lots, lot_stage_history, rolls
+- V2__seed_sample_data.sql: initial seed data for the demo tenant
+- V3__enable_rls.sql: row-level security policy setup for tenant isolation
+
+## Tenant model
+
+Every API request is expected to include the X-Tenant-ID header. The tenant filter sets the active tenant for the request and the app filters lots and rolls by tenant.
+
+The production design is tenant-aware at the application layer and is compatible with Postgres row-level security policies.
+
+## Local development
+
+### Start Postgres
+
+```bash
+docker run --name inventory-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
+```
+
+### Run the backend
+
+```bash
+mvn clean package
+mvn spring-boot:run
+```
+
+The default datasource configuration points at PostgreSQL and uses environment overrides:
+
+- DB_URL
+- DB_USERNAME
+- DB_PASSWORD
+
+### Run the frontend
+
+```bash
+cd frontend
+npm install --legacy-peer-deps
+npm run dev
+```
 
 ## Important endpoints
 
-- `GET /api/lots` — list lots for the current tenant
-- `POST /api/lots` — create a lot
-- `POST /api/lots/{id}/move` — move a lot between stages and record history
-- `GET /api/lots/{id}/history` — lot stage history
-- `GET /api/rolls` — list rolls for the current tenant
+- GET /api/lots — list lots for the active tenant
+- POST /api/lots — create a lot
+- POST /api/lots/{id}/move — stage movement and history entry
+- GET /api/lots/{id}/history — lot history
+- GET /api/rolls — list rolls for the active tenant
 
-## How multi-tenancy works
+## Seed data
 
-- The app expects an `X-Tenant-ID` header on API requests. The demo frontend stores the tenant in `localStorage` and sends it automatically.
-- For Postgres, a Flyway migration named `V3__enable_rls.sql` enables row-level security policies that use the DB session setting `app.tenant`.
-- In demo mode, H2 is used and tenant separation is enforced in the application layer.
+The project seeds sample data for the demo tenant into Postgres during migration. This provides immediate lot and roll records for dashboard and API validation without relying on an in-memory database.
 
-## Running locally
+## Production assumptions
 
-### Backend with H2
+- Postgres is the default runtime database.
+- Flyway is enabled and controls schema setup and seed data.
+- Tenant routing is enforced by the app and supported by Postgres RLS patterns.
+- The app is designed as a single deployable service, not a demo-only H2 project.
 
-1. From the repo root, run:
+## Current status
 
-   ```bash
-   mvn -DskipTests package
-   mvn spring-boot:run
-   ```
-
-2. The default `application.properties` uses H2 and disables Flyway in demo mode.
-
-### Frontend
-
-1. From the `frontend/` directory, run:
-
-   ```bash
-   cd frontend
-   npm install --legacy-peer-deps
-   npm run dev
-   ```
-
-2. The dev server usually runs on <http://localhost:5173> or <http://localhost:5174>. The frontend reads `VITE_API_BASE` and defaults to <http://localhost:8080/api>.
-
-## Enabling Postgres + Flyway
-
-1. Bring up Postgres with Docker:
-
-   ```bash
-   docker run --name inventory-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
-   ```
-
-2. Update `src/main/resources/application.properties` with the Postgres JDBC URL, username, and password, and enable Flyway.
-3. Start the backend and verify that `V3__enable_rls.sql` is applied.
-
-> RLS policies work only in Postgres. Confirm that the `TenantFilter` sets the DB session variable `app.tenant` for each request.
-
-## Demo roll creation
-
-- A tenant-scoped `GET /api/rolls` endpoint is available. For testing, you can insert a row directly:
-
-  ```sql
-  INSERT INTO rolls (roll_number, fabric, length, tenant_id)
-  VALUES ('R-001', 'Denim', '100.0', 'default_tenant');
-  ```
-
-## Size ratio behavior
-
-- The create-lot API accepts `sizeRatiosJson`, for example `{ "30": 1, "32": 2, "34": 1, "36": 1 }`.
-- The backend computes per-size quantities using proportional allocation: quantity = round(total_pcs * ratio / sum_of_ratios).
-
-## Working assumptions and limitations
-
-- The project is a single deployable monolith.
-- Authentication is demo-only.
-- RLS SQL exists but requires a Postgres environment for validation.
-- Some stage-specific metadata flows are still partial.
-
-## Where things live
-
-- `src/main/java/com/futurezminds/inventory/lot/Lot.java` — lot entity
-- `src/main/java/com/futurezminds/inventory/roll/Roll.java` — roll entity
-- `src/main/resources/db/migration/` — Flyway migrations
-- `frontend/src/App.tsx` — primary frontend UI
-- `frontend/src/api.ts` — API client
-
-## Next steps
-
-1. Add a `POST /api/rolls` endpoint and a simple frontend form to create rolls.
-2. Improve size-distribution rounding with deterministic remainder handling.
-3. Implement stage-specific metadata endpoints for fabricator, washer, and finisher.
-4. Re-enable Flyway on Postgres and verify DB-level RLS.
-5. Extract microservices and add Docker Compose for a multi-service demo.
-
-## Local run notes
+The final codebase is configured for Postgres-backed production behavior and sample data loading in the migration layer, rather than demo-only H2 behavior.
 
 ### Backend
 

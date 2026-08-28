@@ -11,4 +11,6 @@ public interface LotStageHistoryRepository extends JpaRepository<LotStageHistory
     List<LotStageHistory> findByLotOrderByChangedAtAsc(Lot lot);
 
     List<LotStageHistory> findByTenantIdAndLotIdOrderByChangedAtAsc(String tenantId, java.util.UUID lotId);
+
+    List<LotStageHistory> findTop50ByTenantIdAndToStage_NameOrderByChangedAtDesc(String tenantId, String stageName);
 }

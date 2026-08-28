@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { fetchRolls, fetchLots, createLot } from '../api'
 import LotDetail from './LotDetail'
+import StageHistorySheet from './StageHistorySheet'
+import { formatAge, formatDate, ageBadgeClass, sortByOldest, stageSince } from '../dateUtils'
 
 const SIZES = ['30', '32', '34', '36']
 
@@ -10,6 +12,7 @@ export default function Cutting() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLot, setSelectedLot] = useState<any | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
 
   // Lot creation flow
   const [selectedRoll, setSelectedRoll] = useState<any | null>(null)
@@ -22,7 +25,7 @@ export default function Cutting() {
     try {
       const [r, l] = await Promise.all([fetchRolls(), fetchLots()])
       setRolls(r)
-      setLots(l.filter((x: any) => (x.currentStage?.name || '') === 'CUTTING'))
+      setLots(sortByOldest(l.filter((x: any) => (x.currentStage?.name || '') === 'CUTTING')))
     } catch (e: any) { setError(String(e)) }
     finally { setLoading(false) }
   }
@@ -55,13 +58,35 @@ export default function Cutting() {
 
   return (
     <div>
-      <div className="page-header"><h1>Cutting</h1></div>
+      <div className="page-header">
+        <h1>Cutting</h1>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowHistory(true)}>History</button>
+      </div>
       <div className="page-content">
         {error && <div className="alert-error">{error}</div>}
         {loading ? <div className="loading">Loading…</div> : (
           <>
+            {/* Lots in cutting */}
+            {lots.length > 0 && (
+              <>
+                <p className="section-title">In Progress — {lots.length}</p>
+                {lots.map(l => (
+                  <div key={l.id} className="lot-item" onClick={() => setSelectedLot(l)}>
+                    <div className="lot-item-left">
+                      <div className="lot-item-title">{l.lotNumber}</div>
+                      <div className="lot-item-sub">{l.brand} · {l.fitType} · {formatDate(stageSince(l))}</div>
+                    </div>
+                    <div className="lot-item-right">
+                      <div className="lot-item-pcs">{l.currentQuantity}</div>
+                      <span className={`badge ${ageBadgeClass(stageSince(l))}`}>{formatAge(stageSince(l))}</span>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
             {/* Available rolls */}
-            <p className="section-title">Available Rolls — {rolls.length}</p>
+            <p className="section-title" style={{ marginTop: 16 }}>Available Rolls — {rolls.length}</p>
             {rolls.length === 0 ? (
               <div className="empty-state"><div className="empty-icon">🧵</div><p>No rolls yet — add rolls in Roll Inventory</p></div>
             ) : (
@@ -78,28 +103,11 @@ export default function Cutting() {
                 </div>
               ))
             )}
-
-            {/* Lots in cutting */}
-            {lots.length > 0 && (
-              <>
-                <p className="section-title" style={{ marginTop: 16 }}>Lots in Cutting — {lots.length}</p>
-                {lots.map(l => (
-                  <div key={l.id} className="lot-item" onClick={() => setSelectedLot(l)}>
-                    <div className="lot-item-left">
-                      <div className="lot-item-title">{l.lotNumber}</div>
-                      <div className="lot-item-sub">{l.brand} · {l.fitType}</div>
-                    </div>
-                    <div className="lot-item-right">
-                      <div className="lot-item-pcs">{l.currentQuantity}</div>
-                      <div className="lot-item-stage">pcs</div>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
           </>
         )}
       </div>
+
+      {showHistory && <StageHistorySheet stageName="CUTTING" onClose={() => setShowHistory(false)} />}
 
       {/* Create lot sheet */}
       {showCreate && (

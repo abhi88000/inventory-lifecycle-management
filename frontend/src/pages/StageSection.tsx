@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { fetchLots, moveLot } from '../api'
 import LotDetail from './LotDetail'
+import StageHistorySheet from './StageHistorySheet'
+import { formatAge, formatDate, ageBadgeClass, sortByOldest, stageSince } from '../dateUtils'
 
 type StageSectionProps = {
   title: string
@@ -12,24 +14,27 @@ type StageSectionProps = {
 }
 
 export default function StageSection({ title, fromStage, toStage, actionLabel, extraField, stageColor = 'var(--primary)' }: StageSectionProps) {
-  const [lots, setLots] = useState<any[]>([])
+  const [inProgress, setInProgress] = useState<any[]>([])
+  const [eligible, setEligible] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeLot, setActiveLot] = useState<any | null>(null)
   const [detail, setDetail] = useState<any | null>(null)
   const [extraValue, setExtraValue] = useState('')
   const [moving, setMoving] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   async function load() {
     setLoading(true); setError(null)
     try {
       const all = await fetchLots()
-      setLots(all.filter((l: any) => (l.currentStage?.name || '') === fromStage))
+      setInProgress(sortByOldest(all.filter((l: any) => (l.currentStage?.name || '') === toStage)))
+      setEligible(sortByOldest(all.filter((l: any) => (l.currentStage?.name || '') === fromStage)))
     } catch (e: any) { setError(String(e)) }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [fromStage])
+  useEffect(() => { load() }, [fromStage, toStage])
 
   async function handleMove() {
     if (!activeLot) return
@@ -45,34 +50,79 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
 
   if (detail) return <LotDetail lot={detail} onBack={() => { setDetail(null); load() }} />
 
+  const total = inProgress.length + eligible.length
+
   return (
     <div>
-      <div className="page-header"><h1>{title}</h1></div>
+      <div className="page-header">
+        <h1>{title}</h1>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowHistory(true)}>History</button>
+      </div>
       <div className="page-content">
         {error && <div className="alert-error">{error}</div>}
-        {loading ? <div className="loading">Loading…</div> : lots.length === 0 ? (
+        {loading ? <div className="loading">Loading…</div> : total === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📦</div>
             <p>No lots at {title} stage</p>
           </div>
         ) : (
           <>
-            <p className="section-title">{lots.length} Lot{lots.length !== 1 ? 's' : ''}</p>
-            {lots.map(l => (
-              <div key={l.id} className="lot-item" onClick={() => setActiveLot(l)}>
-                <div className="lot-item-left">
-                  <div className="lot-item-title">{l.lotNumber}</div>
-                  <div className="lot-item-sub">{l.brand}{l.fabricator ? ` · ${l.fabricator}` : ''}</div>
-                </div>
-                <div className="lot-item-right">
-                  <div className="lot-item-pcs" style={{ color: stageColor }}>{l.currentQuantity}</div>
-                  <div className="lot-item-stage">pcs</div>
-                </div>
+            <div className="production-section">
+              <div className="production-header">
+                <span className="section-title">In Progress</span>
+                <span className="section-count">{inProgress.length}</span>
               </div>
-            ))}
+              {inProgress.length === 0 ? (
+                <div className="empty-state compact"><p>No lots in {title} yet</p></div>
+              ) : (
+                inProgress.map(l => (
+                  <div key={l.id} className="production-card" onClick={() => setDetail(l)}>
+                    <div className="production-card-top">
+                      <div>
+                        <div className="production-lot-number">{l.lotNumber}</div>
+                        <div className="production-subtext">{l.brand}{l.fabricator ? ` · ${l.fabricator}` : ''}</div>
+                      </div>
+                      <span className={`badge ${ageBadgeClass(stageSince(l))}`}>{formatAge(stageSince(l))}</span>
+                    </div>
+                    <div className="production-meta">
+                      <span>{formatDate(stageSince(l))}</span>
+                      <strong style={{ color: stageColor }}>{l.currentQuantity} pcs</strong>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="production-section secondary">
+              <div className="production-header">
+                <span className="section-title">Eligible \u2014 oldest first</span>
+                <span className="section-count">{eligible.length}</span>
+              </div>
+              {eligible.length === 0 ? (
+                <div className="empty-state compact"><p>No lots ready for {title}</p></div>
+              ) : (
+                eligible.map(l => (
+                  <div key={l.id} className="production-card available" onClick={() => setActiveLot(l)}>
+                    <div className="production-card-top">
+                      <div>
+                        <div className="production-lot-number">{l.lotNumber}</div>
+                        <div className="production-subtext">{l.brand}{l.fabricator ? ` · ${l.fabricator}` : ''}</div>
+                      </div>
+                      <span className={`badge ${ageBadgeClass(stageSince(l))}`}>{formatAge(stageSince(l))}</span>
+                    </div>
+                    <div className="production-meta">
+                      <span>{formatDate(stageSince(l))}</span>
+                      <strong>{l.currentQuantity} pcs</strong>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </>
         )}
       </div>
+
+      {showHistory && <StageHistorySheet stageName={toStage} onClose={() => setShowHistory(false)} />}
 
       {/* Action sheet */}
       {activeLot && (

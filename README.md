@@ -1,18 +1,18 @@
 # Inventory Lifecycle Management
 
-This project is a production-oriented garment and inventory tracking system for lot lifecycle management. It is built around a tenant-aware backend, Postgres persistence, and a React frontend that exposes lot and roll data by tenant.
+This project is a production-oriented inventory and garment lifecycle tracking system built for tenant-aware lot and roll operations. The final implementation uses a Spring Boot API backed by PostgreSQL and Flyway, with a Vite React frontend served either locally or behind an NGINX reverse proxy.
 
-## Architecture
+## Final architecture
 
-- Backend: Java 17, Spring Boot 3.1.x, Spring Data JPA, Flyway
-- Database: PostgreSQL
+- Backend: Java 17, Spring Boot 3.1.6, Spring Data JPA, Spring Security
+- Database: PostgreSQL with Flyway-driven schema setup and demo seed data
 - Frontend: React + TypeScript + Vite
-- Security and tenant model: request-scoped tenant context using the X-Tenant-ID header and database-level tenant isolation patterns
-- Deployment model: monolith service behind a reverse proxy or application server
+- Tenant model: X-Tenant-ID request header plus request-scoped tenant context
+- Deployment model: EC2 Ubuntu host with systemd service on port 8081 and NGINX proxying HTTPS traffic to the app
 
-## Core flow
+## Core workflow
 
-Fabric rolls and production lots move through the workflow:
+Fabric rolls and production lots move through the following stages:
 
 - RECEIVED
 - CUTTING
@@ -23,54 +23,56 @@ Fabric rolls and production lots move through the workflow:
 - COMPLETED
 - DISPATCHED
 
-The app exposes lot and roll data for the active tenant and records stage progression in lot history.
+The application records stage movement and exposes current lot and roll data for the active tenant.
 
-## Repository structure
+## Repository layout
 
-- Backend: src/main/java/com/futurezminds/inventory
-- Config: src/main/resources/application.properties
+- Backend source: src/main/java/com/futurezminds/inventory
+- Configuration: src/main/resources/application.properties
 - Database migrations: src/main/resources/db/migration
-- Frontend: frontend/
+- Frontend source: frontend/
 - Tenant enforcement: src/main/java/com/futurezminds/inventory/tenant
 
-## Database and migrations
+## Database and migration model
 
-The app uses PostgreSQL as the source of truth. Flyway runs on startup and applies migrations from the db/migration folder.
+PostgreSQL is the source of truth. Flyway runs on startup and applies the migration files in src/main/resources/db/migration.
 
-The migration set includes:
+Included migrations:
 
-- V1__init.sql: core schema for production_stages, lots, lot_stage_history, rolls
-- V2__seed_sample_data.sql: initial seed data for the demo tenant
-- V3__enable_rls.sql: row-level security policy setup for tenant isolation
+- V1__init.sql: core schema for production stages, lots, history, and rolls
+- V2__seed_sample_data.sql: demo tenant sample lots and rolls
+- V3__enable_rls.sql: row-level security setup for tenant isolation
 
-## Tenant model
+## Tenant behavior
 
-Every API request is expected to include the X-Tenant-ID header. The tenant filter sets the active tenant for the request and the app filters lots and rolls by tenant.
+Every API request is expected to carry the X-Tenant-ID header. The tenant filter resolves the active tenant for the request and constrains data access to that tenant.
 
-The production design is tenant-aware at the application layer and is compatible with Postgres row-level security policies.
+This design is compatible with multi-tenant operations and Postgres row-level security patterns.
 
 ## Local development
 
-### Start Postgres
+### 1. Start PostgreSQL
 
 ```bash
 docker run --name inventory-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
 ```
 
-### Run the backend
+### 2. Run the backend
 
 ```bash
 mvn clean package
 mvn spring-boot:run
 ```
 
-The default datasource configuration points at PostgreSQL and uses environment overrides:
+The runtime uses these environment overrides if needed:
 
 - DB_URL
 - DB_USERNAME
 - DB_PASSWORD
 
-### Run the frontend
+Default configuration is PostgreSQL on localhost:5432 with the inventory_db database.
+
+### 3. Run the frontend
 
 ```bash
 cd frontend
@@ -78,7 +80,9 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-## Important endpoints
+The frontend dev server runs on http://localhost:5173 and defaults to the local backend at http://localhost:8081/api unless VITE_API_BASE is provided.
+
+## Important API endpoints
 
 - GET /api/lots — list lots for the active tenant
 - POST /api/lots — create a lot
@@ -88,49 +92,37 @@ npm run dev
 
 ## Seed data
 
-The project seeds sample data for the demo tenant into Postgres during migration. This provides immediate lot and roll records for dashboard and API validation without relying on an in-memory database.
+The project seeds sample lot and roll data for the demo tenant as part of the migration flow. That provides immediate data visibility and validates the tenant-aware API without relying on an H2 in-memory database.
 
-## Production assumptions
+## Production deployment assumptions
 
-- Postgres is the default runtime database.
-- Flyway is enabled and controls schema setup and seed data.
-- Tenant routing is enforced by the app and supported by Postgres RLS patterns.
-- The app is designed as a single deployable service, not a demo-only H2 project.
+- PostgreSQL is the runtime database.
+- Flyway is enabled and manages schema creation and seed data.
+- The app is deployed as a single service behind port 8081.
+- NGINX terminates HTTPS and proxies requests to the backend on /api.
+- The frontend can either call the same host /api or use VITE_API_BASE override for custom routing.
 
-## Current status
+## Verification and status
 
-The final codebase is configured for Postgres-backed production behavior and sample data loading in the migration layer, rather than demo-only H2 behavior.
+The project is configured as a PostgreSQL-backed production application rather than a demo-only H2 setup. The Java build is validated with Maven, and the live backend is expected to run on port 8081 in a managed EC2 environment.
 
 ### Backend
 
-- Requirements: Java 17, Maven, PostgreSQL
-- Create the database and enable pgcrypto:
+```bash
+mvn -DskipTests package
+mvn spring-boot:run
+```
 
-  ```sql
-  CREATE DATABASE inventory_db;
-  \c inventory_db
-  CREATE EXTENSION IF NOT EXISTS pgcrypto;
-  ```
+### Frontend
 
-- Build and run:
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-  ```bash
-  mvn -DskipTests package
-  mvn spring-boot:run
-  ```
+The default frontend API target is:
 
-- Swagger UI: <http://localhost:8080/swagger-ui/index.html>
-
-### Frontend (Vite + React)
-
-- Requirements: Node 18+ and npm
-
-  ```bash
-  cd frontend
-  npm install
-  npm run dev
-  ```
-
-- Frontend dev server: <http://localhost:5173>
-
-The frontend expects the backend at <http://localhost:8080/api>. To change it, set `VITE_API_BASE`.
+- Local dev: http://localhost:8081/api
+- Production domain: same-origin /api when served from the deployed site
+- Override: set VITE_API_BASE to a custom backend URL

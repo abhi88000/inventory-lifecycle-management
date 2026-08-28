@@ -1,9 +1,9 @@
 const API_BASE = import.meta.env.VITE_API_BASE || (
   typeof window !== 'undefined'
-    ? (window.location.hostname.toLowerCase().includes('futurezminds')
-        ? `${window.location.protocol}//${window.location.hostname}/api`
-        : 'https://inventory.futurezminds.in/api')
-    : 'https://inventory.futurezminds.in/api'
+    ? ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:8081/api'
+        : `${window.location.origin}/api`)
+    : 'http://localhost:8081/api'
 )
 
 function tenantHeader() {
@@ -50,6 +50,12 @@ export async function moveLot(id: string, payload: any) {
 export async function fetchHistory(id: string) {
   const res = await fetch(`${API_BASE}/lots/${id}/history`, { headers: tenantHeader() })
   if (!res.ok) throw new Error('Failed to fetch history')
+  return res.json()
+}
+
+export async function fetchStageHistory(stageName: string) {
+  const res = await fetch(`${API_BASE}/lots/history/stage/${stageName}`, { headers: tenantHeader() })
+  if (!res.ok) throw new Error('Failed to fetch stage history')
   return res.json()
 }
 

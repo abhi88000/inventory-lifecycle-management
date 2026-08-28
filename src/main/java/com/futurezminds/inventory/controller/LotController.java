@@ -109,4 +109,11 @@ public class LotController {
         var hist = historyRepository.findByTenantIdAndLotIdOrderByChangedAtAsc(tenant, id);
         return ResponseEntity.ok(hist);
     }
+
+    @GetMapping("/history/stage/{stageName}")
+    public ResponseEntity<?> stageHistory(@PathVariable String stageName) {
+        String tenant = TenantContext.getTenantId();
+        var hist = historyRepository.findTop50ByTenantIdAndToStage_NameOrderByChangedAtDesc(tenant, stageName);
+        return ResponseEntity.ok(hist);
+    }
 }

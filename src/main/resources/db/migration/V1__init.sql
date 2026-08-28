@@ -1,6 +1,6 @@
 -- Create production stages
 CREATE TABLE production_stages (
-  id SERIAL PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL UNIQUE,
   sort_order INT
 );
@@ -15,10 +15,12 @@ CREATE TABLE lots (
   fabricator VARCHAR(200),
   source_roll_number VARCHAR(255),
   roll_length double precision,
-  size_ratios jsonb,
-  size_quantities jsonb,
+  size_ratios TEXT,
+  size_quantities TEXT,
   fit_type VARCHAR(255),
-  current_stage_id INT REFERENCES production_stages(id),
+  washer VARCHAR(255),
+  finisher VARCHAR(255),
+  current_stage_id BIGINT REFERENCES production_stages(id),
   created_at timestamptz,
   created_by VARCHAR(200),
   updated_at timestamptz,
@@ -29,8 +31,8 @@ CREATE TABLE lots (
 CREATE TABLE lot_stage_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   lot_id uuid NOT NULL REFERENCES lots(id),
-  from_stage_id INT REFERENCES production_stages(id),
-  to_stage_id INT NOT NULL REFERENCES production_stages(id),
+  from_stage_id BIGINT REFERENCES production_stages(id),
+  to_stage_id BIGINT NOT NULL REFERENCES production_stages(id),
   quantity INT,
   notes TEXT,
   changed_by VARCHAR(200),
@@ -55,7 +57,7 @@ ALTER TABLE IF EXISTS lot_stage_history ADD COLUMN IF NOT EXISTS tenant_id VARCH
 
 -- Rolls table
 CREATE TABLE IF NOT EXISTS rolls (
-  id serial PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   roll_number varchar(255) UNIQUE NOT NULL,
   fabric varchar(255),
   length double precision,

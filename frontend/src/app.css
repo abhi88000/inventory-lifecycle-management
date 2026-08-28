@@ -145,7 +145,7 @@ body {
   padding: 8px 12px;
 }
 
-.feature-card {
+.card.feature-card {
   background: linear-gradient(135deg, #102a6d 0%, #1d4ed8 100%);
   color: #fff;
   border: none;

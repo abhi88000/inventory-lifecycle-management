@@ -36,3 +36,63 @@ export function RulerIcon() {
     </svg>
   )
 }
+
+export function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 10.5 12 3l9 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M5.5 9.5V19h13V9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+export function ScissorsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="6.5" cy="6.5" r="2.3" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="6.5" cy="17.5" r="2.3" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M8.2 8.1 19 18.5M8.2 15.9 19 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+export function NeedleThreadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7.5 16.5 16.5 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="17.2" cy="6.8" r="1.7" stroke="currentColor" strokeWidth="1.6"/>
+      <path d="M4 20c1.3-1.8 1-3.3 2.3-4.3 1.3-1 2.6.2 3.9-.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+export function WashingMachineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4.5" y="4" width="15" height="16" rx="2" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="12" cy="13.2" r="4.1" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="12" cy="13.2" r="1.5" stroke="currentColor" strokeWidth="1.4"/>
+      <circle cx="7.2" cy="6.3" r="0.9" fill="currentColor"/>
+      <circle cx="10" cy="6.3" r="0.9" fill="currentColor"/>
+    </svg>
+  )
+}
+
+export function IronIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 16.5c0-4 3-8 8-8h4.5A3.5 3.5 0 0 1 20 12v1a3.5 3.5 0 0 1-3.5 3.5H6a2 2 0 0 1-2-2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M8 8.5c.5-1.5 1.6-2.5 3-2.9M12.2 5c.6-1 1.6-1.6 2.7-1.7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+export function WarehouseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 9.5 12 4l8 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M6 10.5V18h12v-7.5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M9 18v-4h6v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}

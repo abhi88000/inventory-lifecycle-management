@@ -121,6 +121,7 @@ public class LotService {
         h.setNotes(notes);
         h.setChangedAt(OffsetDateTime.now());
         h.setChangedBy(user);
+        h.setTenantId(tenant);
         historyRepository.save(h);
 
         return lot;

@@ -36,8 +36,7 @@ public class TenantFilter extends OncePerRequestFilter {
             TenantContext.setTenantId(tenant);
             // set PostgreSQL session config (used by RLS policies)
             try {
-                String safe = tenant.replace("'","''");
-                jdbcTemplate.execute("SELECT set_config('app.tenant', '" + safe + "', false)");
+                jdbcTemplate.update("SELECT set_config('app.tenant', ?, false)", tenant);
             } catch (Exception e) {
                 // ignore for non-Postgres (H2/demo)
             }

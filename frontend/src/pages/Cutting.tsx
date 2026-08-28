@@ -3,6 +3,7 @@ import { fetchRolls, fetchLots, createLot } from '../api'
 import LotDetail from './LotDetail'
 import StageHistorySheet from './StageHistorySheet'
 import { formatAge, formatDate, ageBadgeClass, sortByOldest, stageSince } from '../dateUtils'
+import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon } from '../icons'
 
 const SIZES = ['30', '32', '34', '36']
 
@@ -42,7 +43,7 @@ export default function Cutting() {
     SIZES.forEach(sz => { ratios[sz] = Number(form.ratios[sz]) || 0 })
     try {
       await createLot({
-        lotNumber: form.lotNumber, brand: form.brand || selectedRoll?.fabric, pcs,
+        lotNumber: form.lotNumber, brand: form.brand || selectedRoll?.brand || selectedRoll?.fabric, pcs,
         fitType: form.fitType, initialStage: 'CUTTING',
         sourceRollNumber: selectedRoll?.rollNumber || '',
         sizeRatiosJson: JSON.stringify(ratios)
@@ -88,16 +89,36 @@ export default function Cutting() {
             {/* Available rolls */}
             <p className="section-title" style={{ marginTop: 16 }}>Available Rolls — {rolls.length}</p>
             {rolls.length === 0 ? (
-              <div className="empty-state"><div className="empty-icon">🧵</div><p>No rolls yet — add rolls in Roll Inventory</p></div>
+              <div className="empty-state"><div className="empty-icon"><FabricIcon /></div><p>No rolls yet — add rolls in Roll Inventory</p></div>
             ) : (
               rolls.map(r => (
-                <div key={r.id} className="roll-item card-clickable" onClick={() => { setSelectedRoll(r); setForm(f => ({ ...f, brand: r.fabric || '' })); setShowCreate(true) }}>
+                <div key={r.id} className="roll-item card-clickable" onClick={() => { setSelectedRoll(r); setForm(f => ({ ...f, brand: r.brand || r.fabric || '' })); setShowCreate(true) }}>
                   <div>
-                    <div style={{ fontWeight: 700 }}>{r.rollNumber}</div>
-                    <div style={{ fontSize: 13, color: 'var(--muted)' }}>{r.fabric}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                      <span className="mini-icon"><FabricIcon /></span>
+                      {r.rollNumber}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                      {r.brand && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--muted)', fontSize: 13 }}>
+                          <span className="mini-icon" style={{ width: 16, height: 16 }}><BrandTagIcon /></span>
+                          {r.brand}
+                        </span>
+                      )}
+                      {r.fabric && <span style={{ fontSize: 13, color: 'var(--muted)' }}>{r.fabric}</span>}
+                    </div>
+                    {r.createdAt && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, color: 'var(--muted)', fontSize: 12 }}>
+                        <span className="mini-icon" style={{ width: 16, height: 16 }}><CalendarIcon /></span>
+                        {formatDate(r.createdAt)}
+                      </div>
+                    )}
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, fontSize: 15 }}>{r.length} m</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, fontWeight: 800, fontSize: 15 }}>
+                      <span className="mini-icon" style={{ width: 16, height: 16 }}><RulerIcon /></span>
+                      {r.length} m
+                    </div>
                     <div style={{ fontSize: 12, color: 'var(--primary)' }}>Tap to cut →</div>
                   </div>
                 </div>

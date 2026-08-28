@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.OffsetDateTime;
+
 @RestController
 @RequestMapping("/api/rolls")
 @Validated
@@ -31,6 +33,7 @@ public class RollController {
         String tenant = TenantContext.getTenantId();
         if (tenant == null) return ResponseEntity.status(400).body("Missing tenant");
         payload.setTenantId(tenant);
+        payload.setCreatedAt(OffsetDateTime.now());
         // ensure unique roll_number per tenant not enforced here; repository/save will fail on DB unique constraint
         var saved = rollRepository.save(payload);
         return ResponseEntity.ok(saved);

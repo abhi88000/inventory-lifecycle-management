@@ -1,0 +1,3 @@
+ALTER TABLE rolls ADD COLUMN IF NOT EXISTS brand VARCHAR(255);
+ALTER TABLE rolls ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ;
+UPDATE rolls SET created_at = now() WHERE created_at IS NULL;

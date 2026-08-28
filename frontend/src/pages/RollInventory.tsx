@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { fetchRolls, createRoll } from '../api'
+import { formatAge, formatDate, ageBadgeClass } from '../dateUtils'
+import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon } from '../icons'
 
 type Props = { onSelectRoll?: (roll: any) => void; selectMode?: boolean }
 
@@ -10,7 +12,7 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
-  const [form, setForm] = useState({ rollNumber: '', fabric: '', length: '' })
+  const [form, setForm] = useState({ rollNumber: '', fabric: '', brand: '', length: '' })
 
   async function load() {
     setLoading(true); setError(null)
@@ -24,14 +26,14 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault(); setSaving(true); setError(null)
     try {
-      await createRoll({ rollNumber: form.rollNumber, fabric: form.fabric, length: Number(form.length) })
-      setShowAdd(false); setForm({ rollNumber: '', fabric: '', length: '' }); await load()
+      await createRoll({ rollNumber: form.rollNumber, fabric: form.fabric, brand: form.brand, length: Number(form.length) })
+      setShowAdd(false); setForm({ rollNumber: '', fabric: '', brand: '', length: '' }); await load()
     } catch (e: any) { setError(String(e)) }
     finally { setSaving(false) }
   }
 
   const filtered = rolls.filter(r =>
-    !search || r.rollNumber?.toLowerCase().includes(search.toLowerCase()) || r.fabric?.toLowerCase().includes(search.toLowerCase())
+    !search || r.rollNumber?.toLowerCase().includes(search.toLowerCase()) || r.fabric?.toLowerCase().includes(search.toLowerCase()) || r.brand?.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -63,7 +65,7 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
 
         {loading ? <div className="loading">Loading…</div> : filtered.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🧵</div>
+            <div className="empty-icon"><FabricIcon /></div>
             <p>{search ? 'No rolls match your search' : 'No rolls yet — add your first roll'}</p>
           </div>
         ) : (
@@ -71,12 +73,34 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
             <div key={r.id} className={`roll-item ${selectMode ? 'card-clickable' : ''}`}
               onClick={() => selectMode && onSelectRoll && onSelectRoll(r)}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{r.rollNumber}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 13 }}>{r.fabric}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 15 }}>
+                  <span className="mini-icon"><FabricIcon /></span>
+                  {r.rollNumber}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                  {r.brand && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--muted)', fontSize: 13 }}>
+                      <span className="mini-icon" style={{ width: 16, height: 16 }}><BrandTagIcon /></span>
+                      {r.brand}
+                    </span>
+                  )}
+                  {r.fabric && (
+                    <span style={{ color: 'var(--muted)', fontSize: 13 }}>{r.fabric}</span>
+                  )}
+                </div>
+                {r.createdAt && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, color: 'var(--muted)', fontSize: 12 }}>
+                    <span className="mini-icon" style={{ width: 16, height: 16 }}><CalendarIcon /></span>
+                    {formatDate(r.createdAt)}
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 800, fontSize: 16 }}>{r.length} m</div>
-                <span className="badge badge-green" style={{ fontSize: 11 }}>Available</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, fontWeight: 800, fontSize: 16 }}>
+                  <span className="mini-icon" style={{ width: 16, height: 16 }}><RulerIcon /></span>
+                  {r.length} m
+                </div>
+                <span className={`badge ${ageBadgeClass(r.createdAt)}`} style={{ fontSize: 11 }}>{formatAge(r.createdAt) || 'Available'}</span>
               </div>
             </div>
           ))
@@ -101,6 +125,10 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
               <div className="form-group">
                 <label className="form-label">Fabric</label>
                 <input className="form-control" placeholder="e.g. Denim Blue" value={form.fabric} onChange={e => setForm(f => ({ ...f, fabric: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Brand</label>
+                <input className="form-control" placeholder="e.g. FutureZ" value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} />
               </div>
               <div className="form-group">
                 <label className="form-label">Length (metres)</label>

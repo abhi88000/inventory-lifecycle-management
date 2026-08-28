@@ -49,12 +49,15 @@ public class StageSeeder implements ApplicationRunner {
 
     private void seedRolls() {
         String[] fabrics = {"Denim", "Cotton", "Stretch", "Washed Denim", "Polyester"};
+        String[] brands = {"FutureZ", "BluePeak", "UrbanThread", "Northline", "Zenith"};
         for (int i = 1; i <= 8; i++) {
             Roll roll = new Roll();
             roll.setRollNumber("R-" + String.format("%03d", i));
             roll.setFabric(fabrics[(i - 1) % fabrics.length]);
+            roll.setBrand(brands[(i - 1) % brands.length]);
             roll.setLength(90.0 + (i * 12.5));
             roll.setTenantId("demo");
+            roll.setCreatedAt(java.time.OffsetDateTime.now().minusDays(8 - i));
             rollRepository.save(roll);
         }
     }

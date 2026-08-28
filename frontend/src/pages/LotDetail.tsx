@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { fetchHistory } from '../api'
+import { fetchHistory, fetchLots, moveLot } from '../api'
 
 const STAGE_LABELS: Record<string, string> = {
   RECEIVED: 'Received', CUTTING: 'Cutting', STITCHING: 'Stitching',
@@ -7,38 +7,79 @@ const STAGE_LABELS: Record<string, string> = {
   COMPLETED: 'Completed', DISPATCHED: 'Dispatched', WAREHOUSE: 'Warehouse'
 }
 
+const NEXT_STEPS: Record<string, { stage: string; label: string; extra?: { key: string; label: string; placeholder: string } }> = {
+  RECEIVED: { stage: 'CUTTING', label: 'Move to Cutting' },
+  CUTTING: { stage: 'STITCHING', label: 'Move to Stitching', extra: { key: 'fabricator', label: 'Fabricator Name', placeholder: 'e.g. ABC Fabricators' } },
+  STITCHING: { stage: 'WASHING', label: 'Move to Washing', extra: { key: 'washer', label: 'Washer Name', placeholder: 'e.g. XYZ Washing' } },
+  WASHING: { stage: 'FINISHING', label: 'Move to Finishing', extra: { key: 'finisher', label: 'Finisher Name', placeholder: 'e.g. DEF Finishers' } },
+  FINISHING: { stage: 'DISPATCHED', label: 'Dispatch to Warehouse' },
+}
+
 type Props = { lot: any; onBack: () => void }
 
 export default function LotDetail({ lot, onBack }: Props) {
+  const [currentLot, setCurrentLot] = useState(lot)
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showMove, setShowMove] = useState(false)
+  const [extraValue, setExtraValue] = useState('')
+  const [moving, setMoving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchHistory(lot.id).then(setHistory).catch(() => setHistory([])).finally(() => setLoading(false))
-  }, [lot.id])
+  function loadHistory() {
+    fetchHistory(currentLot.id).then(setHistory).catch(() => setHistory([])).finally(() => setLoading(false))
+  }
 
-  const sizeQty: Record<string, number> = lot.sizeQuantitiesJson ? (() => { try { return JSON.parse(lot.sizeQuantitiesJson) } catch { return {} } })() : {}
+  useEffect(() => { loadHistory() }, [currentLot.id])
+
+  const nextStep = NEXT_STEPS[currentLot.currentStage?.name]
+
+  async function handleMoveNext() {
+    if (!nextStep) return
+    setMoving(true); setError(null)
+    const payload: any = { toStage: nextStep.stage, quantity: currentLot.currentQuantity }
+    if (nextStep.extra) payload[nextStep.extra.key] = extraValue
+    try {
+      await moveLot(currentLot.id, payload)
+      const all = await fetchLots()
+      const updated = all.find((x: any) => x.id === currentLot.id)
+      if (updated) setCurrentLot(updated)
+      setShowMove(false); setExtraValue('')
+      loadHistory()
+    } catch (e: any) { setError(String(e)) }
+    finally { setMoving(false) }
+  }
+
+  const sizeQty: Record<string, number> = currentLot.sizeQuantitiesJson ? (() => { try { return JSON.parse(currentLot.sizeQuantitiesJson) } catch { return {} } })() : {}
 
   return (
     <div>
       <div className="page-header">
         <button className="back-btn" onClick={onBack}>←</button>
-        <h1>{lot.lotNumber}</h1>
-        <span className={`badge badge badge-blue`}>{STAGE_LABELS[lot.currentStage?.name] || lot.currentStage?.name}</span>
+        <h1>{currentLot.lotNumber}</h1>
+        <span className={`badge badge badge-blue`}>{STAGE_LABELS[currentLot.currentStage?.name] || currentLot.currentStage?.name}</span>
       </div>
 
       <div className="page-content">
+        {error && <div className="alert-error">{error}</div>}
+
+        {nextStep && (
+          <button className="btn btn-primary btn-full" style={{ marginBottom: 16 }} onClick={() => setShowMove(true)}>
+            {nextStep.label} →
+          </button>
+        )}
+
         {/* Core info */}
         <div className="card" style={{ marginBottom: 12 }}>
           {[
-            ['Brand', lot.brand],
-            ['Total Pieces', lot.currentQuantity],
-            ['Fit Type', lot.fitType],
-            ['Source Roll', lot.sourceRollNumber],
-            ['Roll Length', lot.rollLength ? `${lot.rollLength} m` : null],
-            ['Fabricator', lot.fabricator],
-            ['Washer', lot.washer],
-            ['Finisher', lot.finisher],
+            ['Brand', currentLot.brand],
+            ['Total Pieces', currentLot.currentQuantity],
+            ['Fit Type', currentLot.fitType],
+            ['Source Roll', currentLot.sourceRollNumber],
+            ['Roll Length', currentLot.rollLength ? `${currentLot.rollLength} m` : null],
+            ['Fabricator', currentLot.fabricator],
+            ['Washer', currentLot.washer],
+            ['Finisher', currentLot.finisher],
           ].filter(([, v]) => v != null && v !== '').map(([k, v]) => (
             <div key={k as string} className="detail-row">
               <span className="detail-key">{k}</span>
@@ -87,6 +128,36 @@ export default function LotDetail({ lot, onBack }: Props) {
           </div>
         )}
       </div>
+
+      {showMove && nextStep && (
+        <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowMove(false); setExtraValue('') } }}>
+          <div className="sheet">
+            <div className="sheet-handle" />
+            <p className="sheet-title">{nextStep.label}</p>
+
+            <div className="card" style={{ background: 'var(--bg)', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>Pieces</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--primary)' }}>{currentLot.currentQuantity}</span>
+              </div>
+            </div>
+
+            {nextStep.extra && (
+              <div className="form-group">
+                <label className="form-label">{nextStep.extra.label}</label>
+                <input className="form-control" placeholder={nextStep.extra.placeholder} value={extraValue} onChange={e => setExtraValue(e.target.value)} />
+              </div>
+            )}
+
+            {error && <div className="alert-error">{error}</div>}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-ghost btn-full" onClick={() => { setShowMove(false); setExtraValue('') }}>Cancel</button>
+              <button className="btn btn-success btn-full" onClick={handleMoveNext} disabled={moving}>{moving ? 'Moving…' : nextStep.label}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

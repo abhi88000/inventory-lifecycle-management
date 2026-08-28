@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { fetchLots, moveLot } from '../api'
 import LotDetail from './LotDetail'
 import StageHistorySheet from './StageHistorySheet'
+import CollapsibleSection from './CollapsibleSection'
 import { formatAge, formatDate, ageBadgeClass, sortByOldest, stageSince } from '../dateUtils'
+import { matchesLotSearch } from '../search'
+import { SearchIcon } from '../icons'
 
 export default function Stitching() {
   const [inProgress, setInProgress] = useState<any[]>([])
@@ -14,6 +17,7 @@ export default function Stitching() {
   const [detail, setDetail] = useState<any | null>(null)
   const [moving, setMoving] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function load() {
     setLoading(true)
@@ -55,6 +59,9 @@ export default function Stitching() {
 
   if (detail) return <LotDetail lot={detail} onBack={() => { setDetail(null); load() }} />
 
+  const filteredInProgress = inProgress.filter(l => matchesLotSearch(l, search))
+  const filteredAvailable = available.filter(l => matchesLotSearch(l, search))
+
   return (
     <div>
       <div className="page-header">
@@ -75,6 +82,13 @@ export default function Stitching() {
 
       <div className="page-content">
         {error && <div className="alert-error">{error}</div>}
+
+        {(inProgress.length > 0 || available.length > 0) && (
+          <div className="search-box">
+            <span className="search-icon"><SearchIcon /></span>
+            <input className="form-control" placeholder="Search by lot number, brand, fabricator…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        )}
 
         {loading ? (
           <div className="loading">Loading…</div>
@@ -97,19 +111,14 @@ export default function Stitching() {
               </div>
             </div>
 
-            <div className="production-section">
-              <div className="production-header">
-                <span className="section-title">In Progress</span>
-                <span className="section-count">{inProgress.length}</span>
-              </div>
-
-              {inProgress.length === 0 ? (
+            <CollapsibleSection title="In Progress" count={filteredInProgress.length}>
+              {filteredInProgress.length === 0 ? (
                 <div className="empty-state compact">
                   <div className="empty-icon">🧵</div>
-                  <p>No active stitching lots</p>
+                  <p>{search ? 'No matches' : 'No active stitching lots'}</p>
                 </div>
               ) : (
-                inProgress.map((lot: any) => (
+                filteredInProgress.map((lot: any) => (
                   <div key={lot.id} className="production-card" onClick={() => setDetail(lot)}>
                     <div className="production-card-top">
                       <div>
@@ -126,21 +135,16 @@ export default function Stitching() {
                   </div>
                 ))
               )}
-            </div>
+            </CollapsibleSection>
 
-            <div className="production-section secondary">
-              <div className="production-header">
-                <span className="section-title">Available in Cutting</span>
-                <span className="section-count">{available.length}</span>
-              </div>
-
-              {available.length === 0 ? (
+            <CollapsibleSection title="Available in Cutting" count={filteredAvailable.length}>
+              {filteredAvailable.length === 0 ? (
                 <div className="empty-state compact">
                   <div className="empty-icon">📦</div>
-                  <p>No cutting lots ready</p>
+                  <p>{search ? 'No matches' : 'No cutting lots ready'}</p>
                 </div>
               ) : (
-                available.map((lot: any) => (
+                filteredAvailable.map((lot: any) => (
                   <div key={lot.id} className="production-card available" onClick={() => setActiveLot(lot)}>
                     <div className="production-card-top">
                       <div>
@@ -157,7 +161,7 @@ export default function Stitching() {
                   </div>
                 ))
               )}
-            </div>
+            </CollapsibleSection>
           </>
         )}
       </div>

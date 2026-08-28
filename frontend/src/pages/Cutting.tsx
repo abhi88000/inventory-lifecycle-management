@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { fetchRolls, fetchLots, createLot } from '../api'
 import LotDetail from './LotDetail'
 import StageHistorySheet from './StageHistorySheet'
+import CollapsibleSection from './CollapsibleSection'
 import { formatAge, formatDate, ageBadgeClass, sortByOldest, stageSince } from '../dateUtils'
-import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon } from '../icons'
+import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon, SearchIcon } from '../icons'
+import { matchesLotSearch, matchesRollSearch } from '../search'
 
 const SIZES = ['30', '32', '34', '36']
 
@@ -14,6 +16,7 @@ export default function Cutting() {
   const [error, setError] = useState<string | null>(null)
   const [selectedLot, setSelectedLot] = useState<any | null>(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [search, setSearch] = useState('')
 
   // Lot creation flow
   const [selectedRoll, setSelectedRoll] = useState<any | null>(null)
@@ -57,6 +60,9 @@ export default function Cutting() {
 
   if (selectedLot) return <LotDetail lot={selectedLot} onBack={() => { setSelectedLot(null); load() }} />
 
+  const filteredLots = lots.filter(l => matchesLotSearch(l, search))
+  const filteredRolls = rolls.filter(r => matchesRollSearch(r, search))
+
   return (
     <div>
       <div className="page-header">
@@ -65,33 +71,44 @@ export default function Cutting() {
       </div>
       <div className="page-content">
         {error && <div className="alert-error">{error}</div>}
+        {(lots.length > 0 || rolls.length > 0) && (
+          <div className="search-box">
+            <span className="search-icon"><SearchIcon /></span>
+            <input className="form-control" placeholder="Search by lot/roll number, brand, fabric…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        )}
         {loading ? <div className="loading">Loading…</div> : (
           <>
             {/* Lots in cutting */}
             {lots.length > 0 && (
-              <>
-                <p className="section-title">In Progress — {lots.length}</p>
-                {lots.map(l => (
-                  <div key={l.id} className="lot-item" onClick={() => setSelectedLot(l)}>
-                    <div className="lot-item-left">
-                      <div className="lot-item-title">{l.lotNumber}</div>
-                      <div className="lot-item-sub">{l.brand} · {l.fitType} · {formatDate(stageSince(l))}</div>
+              <CollapsibleSection title="In Progress" count={filteredLots.length}>
+                {filteredLots.length === 0 ? (
+                  <div className="empty-state compact"><p>No matches</p></div>
+                ) : (
+                  filteredLots.map(l => (
+                    <div key={l.id} className="lot-item" onClick={() => setSelectedLot(l)}>
+                      <div className="lot-item-left">
+                        <div className="lot-item-title">{l.lotNumber}</div>
+                        <div className="lot-item-sub">{l.brand} · {l.fitType} · {formatDate(stageSince(l))}</div>
+                      </div>
+                      <div className="lot-item-right">
+                        <div className="lot-item-pcs">{l.currentQuantity}</div>
+                        <span className={`badge ${ageBadgeClass(stageSince(l))}`}>{formatAge(stageSince(l))}</span>
+                      </div>
                     </div>
-                    <div className="lot-item-right">
-                      <div className="lot-item-pcs">{l.currentQuantity}</div>
-                      <span className={`badge ${ageBadgeClass(stageSince(l))}`}>{formatAge(stageSince(l))}</span>
-                    </div>
-                  </div>
-                ))}
-              </>
+                  ))
+                )}
+              </CollapsibleSection>
             )}
 
             {/* Available rolls */}
-            <p className="section-title" style={{ marginTop: 16 }}>Available Rolls — {rolls.length}</p>
-            {rolls.length === 0 ? (
-              <div className="empty-state"><div className="empty-icon"><FabricIcon /></div><p>No rolls yet — add rolls in Roll Inventory</p></div>
-            ) : (
-              rolls.map(r => (
+            <CollapsibleSection title="Available Rolls" count={filteredRolls.length}>
+              {rolls.length === 0 ? (
+                <div className="empty-state"><div className="empty-icon"><FabricIcon /></div><p>No rolls yet — add rolls in Roll Inventory</p></div>
+              ) : filteredRolls.length === 0 ? (
+                <div className="empty-state compact"><p>No matches</p></div>
+              ) : (
+                filteredRolls.map(r => (
                 <div key={r.id} className="roll-item card-clickable" onClick={() => { setSelectedRoll(r); setForm(f => ({ ...f, brand: r.brand || r.fabric || '' })); setShowCreate(true) }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
@@ -122,8 +139,9 @@ export default function Cutting() {
                     <div style={{ fontSize: 12, color: 'var(--primary)' }}>Tap to cut →</div>
                   </div>
                 </div>
-              ))
-            )}
+                ))
+              )}
+            </CollapsibleSection>
           </>
         )}
       </div>

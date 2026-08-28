@@ -591,6 +591,51 @@ select.form-control { cursor: pointer; }
   text-align: center;
 }
 
+/* ── Collapsible sections ── */
+.collapsible-header {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.chevron {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+.chevron.open { transform: rotate(180deg); }
+
+.collapsible-content { margin-top: 2px; }
+
+/* ── Search box ── */
+.search-box {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.search-box .form-control {
+  padding-left: 40px;
+}
+
+.search-box .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
 /* ── List items ── */
 .lot-item {
   background: var(--surface);

@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { fetchLots, moveLot } from '../api'
 import LotDetail from './LotDetail'
 import StageHistorySheet from './StageHistorySheet'
+import CollapsibleSection from './CollapsibleSection'
 import { formatAge, formatDate, ageBadgeClass, sortByOldest, stageSince } from '../dateUtils'
+import { matchesLotSearch } from '../search'
+import { SearchIcon } from '../icons'
 
 type StageSectionProps = {
   title: string
@@ -23,6 +26,7 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
   const [extraValue, setExtraValue] = useState('')
   const [moving, setMoving] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function load() {
     setLoading(true); setError(null)
@@ -50,6 +54,8 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
 
   if (detail) return <LotDetail lot={detail} onBack={() => { setDetail(null); load() }} />
 
+  const filteredInProgress = inProgress.filter(l => matchesLotSearch(l, search))
+  const filteredEligible = eligible.filter(l => matchesLotSearch(l, search))
   const total = inProgress.length + eligible.length
 
   return (
@@ -60,6 +66,12 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
       </div>
       <div className="page-content">
         {error && <div className="alert-error">{error}</div>}
+        {total > 0 && (
+          <div className="search-box">
+            <span className="search-icon"><SearchIcon /></span>
+            <input className="form-control" placeholder="Search by lot number, brand, fabricator…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        )}
         {loading ? <div className="loading">Loading…</div> : total === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📦</div>
@@ -67,15 +79,11 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
           </div>
         ) : (
           <>
-            <div className="production-section">
-              <div className="production-header">
-                <span className="section-title">In Progress</span>
-                <span className="section-count">{inProgress.length}</span>
-              </div>
-              {inProgress.length === 0 ? (
-                <div className="empty-state compact"><p>No lots in {title} yet</p></div>
+            <CollapsibleSection title="In Progress" count={filteredInProgress.length}>
+              {filteredInProgress.length === 0 ? (
+                <div className="empty-state compact"><p>{search ? 'No matches' : `No lots in ${title} yet`}</p></div>
               ) : (
-                inProgress.map(l => (
+                filteredInProgress.map(l => (
                   <div key={l.id} className="production-card" onClick={() => setDetail(l)}>
                     <div className="production-card-top">
                       <div>
@@ -91,17 +99,13 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
                   </div>
                 ))
               )}
-            </div>
+            </CollapsibleSection>
 
-            <div className="production-section secondary">
-              <div className="production-header">
-                <span className="section-title">Eligible \u2014 oldest first</span>
-                <span className="section-count">{eligible.length}</span>
-              </div>
-              {eligible.length === 0 ? (
-                <div className="empty-state compact"><p>No lots ready for {title}</p></div>
+            <CollapsibleSection title="Eligible — oldest first" count={filteredEligible.length}>
+              {filteredEligible.length === 0 ? (
+                <div className="empty-state compact"><p>{search ? 'No matches' : `No lots ready for ${title}`}</p></div>
               ) : (
-                eligible.map(l => (
+                filteredEligible.map(l => (
                   <div key={l.id} className="production-card available" onClick={() => setActiveLot(l)}>
                     <div className="production-card-top">
                       <div>
@@ -117,7 +121,7 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
                   </div>
                 ))
               )}
-            </div>
+            </CollapsibleSection>
           </>
         )}
       </div>

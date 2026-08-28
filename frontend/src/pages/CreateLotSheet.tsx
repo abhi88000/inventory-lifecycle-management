@@ -3,9 +3,9 @@ import { createLot } from '../api'
 
 const SIZES = ['30', '32', '34', '36']
 
-type Props = { roll: any; onClose: () => void; onCreated: () => void }
+type Props = { roll: any; onClose: () => void; onCreated: () => void; title?: string; actionLabel?: string }
 
-export default function CreateLotSheet({ roll, onClose, onCreated }: Props) {
+export default function CreateLotSheet({ roll, onClose, onCreated, title = 'Create Cutting Lot', actionLabel = 'Create Lot' }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -37,7 +37,7 @@ export default function CreateLotSheet({ roll, onClose, onCreated }: Props) {
     <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="sheet">
         <div className="sheet-handle" />
-        <p className="sheet-title">Move Roll to Cutting</p>
+        <p className="sheet-title">{title}</p>
         {roll && (
           <div className="card" style={{ background: 'var(--primary-light)', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{roll.rollNumber}</div>
@@ -78,7 +78,7 @@ export default function CreateLotSheet({ roll, onClose, onCreated }: Props) {
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" className="btn btn-ghost btn-full" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary btn-full" disabled={saving}>{saving ? 'Saving…' : 'Move to Cutting'}</button>
+            <button type="submit" className="btn btn-primary btn-full" disabled={saving}>{saving ? 'Saving…' : actionLabel}</button>
           </div>
         </form>
       </div>

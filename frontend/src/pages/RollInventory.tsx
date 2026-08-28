@@ -119,6 +119,8 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
           roll={moveRoll}
           onClose={() => setMoveRoll(null)}
           onCreated={() => { setMoveRoll(null); load() }}
+          title="Move to Cutting"
+          actionLabel="Move to Cutting"
         />
       )}
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { fetchRolls, createRoll } from '../api'
 import { formatAge, formatDate, ageBadgeClass } from '../dateUtils'
 import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon } from '../icons'
+import CreateLotSheet from './CreateLotSheet'
 
 type Props = { onSelectRoll?: (roll: any) => void; selectMode?: boolean }
 
@@ -13,6 +14,7 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [form, setForm] = useState({ rollNumber: '', fabric: '', brand: '', length: '' })
+  const [moveRoll, setMoveRoll] = useState<any | null>(null)
 
   async function load() {
     setLoading(true); setError(null)
@@ -70,8 +72,8 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
           </div>
         ) : (
           filtered.map(r => (
-            <div key={r.id} className={`roll-item ${selectMode ? 'card-clickable' : ''}`}
-              onClick={() => selectMode && onSelectRoll && onSelectRoll(r)}>
+            <div key={r.id} className="roll-item card-clickable"
+              onClick={() => selectMode ? (onSelectRoll && onSelectRoll(r)) : setMoveRoll(r)}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 15 }}>
                   <span className="mini-icon"><FabricIcon /></span>
@@ -101,6 +103,7 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
                   {r.length} m
                 </div>
                 <span className={`badge ${ageBadgeClass(r.createdAt)}`} style={{ fontSize: 11 }}>{formatAge(r.createdAt) || 'Available'}</span>
+                {!selectMode && <div style={{ fontSize: 12, color: 'var(--primary)', marginTop: 4 }}>Move to Cutting →</div>}
               </div>
             </div>
           ))
@@ -110,6 +113,14 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
           <button className="fab" onClick={() => setShowAdd(true)}>+</button>
         )}
       </div>
+
+      {moveRoll && (
+        <CreateLotSheet
+          roll={moveRoll}
+          onClose={() => setMoveRoll(null)}
+          onCreated={() => { setMoveRoll(null); load() }}
+        />
+      )}
 
       {showAdd && (
         <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAdd(false) }}>

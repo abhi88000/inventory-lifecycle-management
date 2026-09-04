@@ -109,9 +109,8 @@ public class LotService {
         if (!tenant.equals(lot.getTenantId())) throw new IllegalArgumentException("Lot not found");
         ProductionStage from = lot.getCurrentStage();
 
-        // update current quantity (simple subtraction for moved quantity)
-        int remaining = (lot.getCurrentQuantity() == null ? 0 : lot.getCurrentQuantity()) - quantity;
-        lot.setCurrentQuantity(Math.max(remaining, 0));
+        // move the full lot forward; quantity is the lot's current pieces, not a partial deduction
+        lot.setCurrentQuantity(quantity);
         lot.setCurrentStage(toStage);
         if (fabricator != null && !fabricator.isBlank()) lot.setFabricator(fabricator);
         if (washer != null && !washer.isBlank()) lot.setWasher(washer);

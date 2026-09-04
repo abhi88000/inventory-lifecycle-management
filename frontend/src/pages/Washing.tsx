@@ -7,6 +7,8 @@ export default function Washing() {
       title="Washing"
       fromStage="STITCHING"
       toStage="WASHING"
+      nextStage="FINISHING"
+      nextLabel="Move to Finishing"
       actionLabel="Complete Washing →"
       extraField={{ key: 'washer', label: 'Washer Name', placeholder: 'e.g. XYZ Washing' }}
       stageColor="#065f46"

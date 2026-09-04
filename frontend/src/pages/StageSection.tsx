@@ -11,17 +11,20 @@ type StageSectionProps = {
   title: string
   fromStage: string
   toStage: string
+  nextStage: string
+  nextLabel: string
   actionLabel: string
   extraField?: { key: string; label: string; placeholder: string }
   stageColor?: string
 }
 
-export default function StageSection({ title, fromStage, toStage, actionLabel, extraField, stageColor = 'var(--primary)' }: StageSectionProps) {
+export default function StageSection({ title, fromStage, toStage, nextStage, nextLabel, actionLabel, extraField, stageColor = 'var(--primary)' }: StageSectionProps) {
   const [inProgress, setInProgress] = useState<any[]>([])
   const [eligible, setEligible] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeLot, setActiveLot] = useState<any | null>(null)
+  const [advanceLot, setAdvanceLot] = useState<any | null>(null)
   const [detail, setDetail] = useState<any | null>(null)
   const [extraValue, setExtraValue] = useState('')
   const [moving, setMoving] = useState(false)
@@ -48,6 +51,16 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
     try {
       await moveLot(activeLot.id, payload)
       setActiveLot(null); setExtraValue(''); await load()
+    } catch (e: any) { setError(String(e)) }
+    finally { setMoving(false) }
+  }
+
+  async function handleAdvance() {
+    if (!advanceLot) return
+    setMoving(true); setError(null)
+    try {
+      await moveLot(advanceLot.id, { toStage: nextStage, quantity: advanceLot.currentQuantity })
+      setAdvanceLot(null); await load()
     } catch (e: any) { setError(String(e)) }
     finally { setMoving(false) }
   }
@@ -84,7 +97,7 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
                 <div className="empty-state compact"><p>{search ? 'No matches' : `No lots in ${title} yet`}</p></div>
               ) : (
                 filteredInProgress.map(l => (
-                  <div key={l.id} className="production-card" onClick={() => setDetail(l)}>
+                  <div key={l.id} className="production-card" onClick={() => setAdvanceLot(l)}>
                     <div className="production-card-top">
                       <div>
                         <div className="production-lot-number">{l.lotNumber}</div>
@@ -96,6 +109,7 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
                       <span>{formatDate(stageSince(l))}</span>
                       <strong style={{ color: stageColor }}>{l.currentQuantity} pcs</strong>
                     </div>
+                    <div style={{ fontSize: 12, color: 'var(--primary)', marginTop: 4 }}>{nextLabel} →</div>
                   </div>
                 ))
               )}
@@ -182,6 +196,56 @@ export default function StageSection({ title, fromStage, toStage, actionLabel, e
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-ghost btn-full" onClick={() => { setActiveLot(null); setExtraValue('') }}>Cancel</button>
               <button className="btn btn-success btn-full" onClick={handleMove} disabled={moving}>{moving ? 'Moving…' : actionLabel}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Advance sheet — in-progress items move to next stage */}
+      {advanceLot && (
+        <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) setAdvanceLot(null) }}>
+          <div className="sheet">
+            <div className="sheet-handle" />
+            <p className="sheet-title">{advanceLot.lotNumber}</p>
+
+            <div className="card" style={{ background: 'var(--bg)', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>Brand</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>{advanceLot.brand || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>Pieces</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: stageColor }}>{advanceLot.currentQuantity}</span>
+              </div>
+              {advanceLot.fitType && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>Fit</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{advanceLot.fitType}</span>
+                </div>
+              )}
+              {advanceLot.fabricator && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>Fabricator</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{advanceLot.fabricator}</span>
+                </div>
+              )}
+              {advanceLot.washer && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>Washer</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{advanceLot.washer}</span>
+                </div>
+              )}
+            </div>
+
+            {error && <div className="alert-error">{error}</div>}
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setDetail(advanceLot); setAdvanceLot(null) }}>View History</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-ghost btn-full" onClick={() => setAdvanceLot(null)}>Cancel</button>
+              <button className="btn btn-success btn-full" onClick={handleAdvance} disabled={moving}>{moving ? 'Moving…' : nextLabel + ' →'}</button>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import com.futurezminds.inventory.entity.ProductionStage;
 import com.futurezminds.inventory.repository.LotRepository;
 import com.futurezminds.inventory.repository.LotStageHistoryRepository;
 import com.futurezminds.inventory.repository.ProductionStageRepository;
+import com.futurezminds.inventory.repository.RollRepository;
 import com.futurezminds.inventory.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +21,13 @@ public class LotService {
     private final LotRepository lotRepository;
     private final ProductionStageRepository stageRepository;
     private final LotStageHistoryRepository historyRepository;
+    private final RollRepository rollRepository;
 
-    public LotService(LotRepository lotRepository, ProductionStageRepository stageRepository, LotStageHistoryRepository historyRepository) {
+    public LotService(LotRepository lotRepository, ProductionStageRepository stageRepository, LotStageHistoryRepository historyRepository, RollRepository rollRepository) {
         this.lotRepository = lotRepository;
         this.stageRepository = stageRepository;
         this.historyRepository = historyRepository;
+        this.rollRepository = rollRepository;
     }
 
     public Lot createLot(String lotNumber, String brand, Integer pcs, String fabricator, String initialStageName, String user,
@@ -82,6 +85,11 @@ public class LotService {
         h.setChangedBy(user);
         h.setTenantId(tenant);
         historyRepository.save(h);
+
+        // roll is fully consumed once cut into a lot
+        if (sourceRollNumber != null && !sourceRollNumber.isBlank()) {
+            rollRepository.findByRollNumberAndTenantId(sourceRollNumber, tenant).ifPresent(rollRepository::delete);
+        }
 
         return saved;
     }

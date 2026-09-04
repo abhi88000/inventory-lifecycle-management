@@ -7,6 +7,8 @@ export default function Finishing() {
       title="Finishing"
       fromStage="WASHING"
       toStage="FINISHING"
+      nextStage="DISPATCHED"
+      nextLabel="Dispatch to Warehouse"
       actionLabel="Complete Finishing →"
       extraField={{ key: 'finisher', label: 'Finisher Name', placeholder: 'e.g. DEF Finishers' }}
       stageColor="#9d174d"

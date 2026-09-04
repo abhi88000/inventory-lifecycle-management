@@ -15,7 +15,8 @@ export default function Warehouse() {
     setLoading(true); setError(null)
     try {
       const all = await fetchLots()
-      setLots(all.filter((l: any) => ['FINISHING', 'WAREHOUSE', 'PACKING', 'COMPLETED'].includes(l.currentStage?.name || '')))
+      // Show all lots that have completed production: FINISHING, WAREHOUSE, PACKING, COMPLETED, DISPATCHED
+      setLots(all.filter((l: any) => ['FINISHING', 'WAREHOUSE', 'PACKING', 'COMPLETED', 'DISPATCHED'].includes(l.currentStage?.name || '')))
     } catch (e: any) { setError(String(e)) }
     finally { setLoading(false) }
   }

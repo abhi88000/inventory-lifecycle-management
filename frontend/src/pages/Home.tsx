@@ -54,9 +54,10 @@ export default function Home({ onNavigate }: Props) {
 
   const availRolls = rolls.length
   const totalMeters = rolls.reduce((s: number, r: any) => s + (r.length || 0), 0)
-  // Count all lots that have completed production — WAREHOUSE, COMPLETED, PACKING, and DISPATCHED
-  const warehouseLots = byStage('WAREHOUSE').length + byStage('COMPLETED').length + byStage('PACKING').length + byStage('DISPATCHED').length
-  const warehousePcs = pcsInStage('WAREHOUSE') + pcsInStage('COMPLETED') + pcsInStage('PACKING') + pcsInStage('DISPATCHED')
+  // Count all finished-goods lots: FINISHING, WAREHOUSE, COMPLETED, PACKING, and DISPATCHED
+  const warehouseStages = ['FINISHING', 'WAREHOUSE', 'COMPLETED', 'PACKING', 'DISPATCHED']
+  const warehouseLots = warehouseStages.reduce((n, s) => n + byStage(s).length, 0)
+  const warehousePcs = warehouseStages.reduce((n, s) => n + pcsInStage(s), 0)
 
   return (
     <div>

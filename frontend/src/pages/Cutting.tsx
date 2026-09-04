@@ -8,6 +8,10 @@ import { formatAge, formatDate, ageBadgeClass, sortByOldest, stageSince } from '
 import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon, SearchIcon } from '../icons'
 import { matchesLotSearch, matchesRollSearch } from '../search'
 
+// Cutting page: shows lots currently being cut (In Progress) and available fabric rolls.
+// Tapping an in-progress lot opens a sheet to advance it to Stitching.
+// Tapping a roll opens the lot creation form — the roll is consumed on creation.
+
 export default function Cutting() {
   const [rolls, setRolls] = useState<any[]>([])
   const [lots, setLots] = useState<any[]>([])

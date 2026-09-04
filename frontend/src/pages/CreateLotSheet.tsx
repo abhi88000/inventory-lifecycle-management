@@ -3,6 +3,10 @@ import { createLot } from '../api'
 
 const SIZES = ['30', '32', '34', '36']
 
+// Shared lot creation form used by both the Cutting page and Roll Inventory.
+// Creates a lot at the CUTTING stage from a fabric roll.
+// The roll is deleted from inventory once the lot is created (fully consumed).
+
 type Props = { roll: any; onClose: () => void; onCreated: () => void; title?: string; actionLabel?: string }
 
 export default function CreateLotSheet({ roll, onClose, onCreated, title = 'Create Cutting Lot', actionLabel = 'Create Lot' }: Props) {

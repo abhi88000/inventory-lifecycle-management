@@ -10,6 +10,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+// Intercepts every request to resolve the tenant from X-Tenant-ID header.
+// Sets TenantContext (ThreadLocal) and Postgres session variable for RLS.
+// Defaults to "demo" when no header is present (useful for local dev).
+
 @Component
 public class TenantFilter extends OncePerRequestFilter {
 

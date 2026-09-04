@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+// Core business logic for lot creation and stage movement.
+// All operations are tenant-scoped via TenantContext (set by TenantFilter from X-Tenant-ID header).
+// Every stage transition writes a LotStageHistory record for audit trail.
+
 @Service
 public class LotService {
     private final LotRepository lotRepository;
@@ -30,6 +34,9 @@ public class LotService {
         this.rollRepository = rollRepository;
     }
 
+    // Creates a lot from a fabric roll. The roll is consumed (deleted) once cut.
+    // Computes size breakdown from ratios (e.g. {"30":1,"32":2} → quantity per size).
+    // Records initial stage entry in lot_stage_history.
     public Lot createLot(String lotNumber, String brand, Integer pcs, String fabricator, String initialStageName, String user,
                          String sourceRollNumber, String fitType, java.util.Map<String,Integer> sizeRatios, Double rollLength) {
         Lot lot = new Lot();
@@ -101,6 +108,8 @@ public class LotService {
 
     public Optional<Lot> getById(UUID id) { return lotRepository.findById(id); }
 
+    // Moves a lot to the next production stage. Full-lot advance only — no partial splits.
+    // Updates stage, metadata (fabricator/washer/finisher), and writes history record.
     @Transactional
     public Lot moveLot(UUID lotId, ProductionStage toStage, int quantity, String notes, String user,
                        String fabricator, String washer, String finisher) {

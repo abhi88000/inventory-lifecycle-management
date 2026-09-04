@@ -1,3 +1,7 @@
+// API client for all backend calls.
+// Automatically includes X-Tenant-ID header from localStorage (defaults to "demo").
+// Base URL: same-origin /api in production, localhost:8081/api in local dev.
+
 const API_BASE = import.meta.env.VITE_API_BASE || (
   typeof window !== 'undefined'
     ? ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')

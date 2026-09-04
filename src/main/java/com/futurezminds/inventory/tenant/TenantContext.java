@@ -1,5 +1,8 @@
 package com.futurezminds.inventory.tenant;
 
+// Request-scoped tenant storage using ThreadLocal.
+// Set by TenantFilter at the start of each request, cleared after.
+// When auth is added, tenant should be derived from the authenticated principal instead of a header.
 public class TenantContext {
     private static final ThreadLocal<String> currentTenant = new ThreadLocal<>();
 

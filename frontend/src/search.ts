@@ -1,3 +1,6 @@
+// Client-side search helpers for lots and rolls.
+// Matches against lot number, brand, fit type, fabricator, washer, finisher, and source roll.
+
 export function matchesLotSearch(lot: any, query: string): boolean {
   if (!query) return true
   const needle = query.trim().toLowerCase()

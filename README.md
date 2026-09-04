@@ -1,128 +1,103 @@
-# Inventory Lifecycle Management
+# Stock Monitoring
 
-This project is a production-oriented inventory and garment lifecycle tracking system built for tenant-aware lot and roll operations. The final implementation uses a Spring Boot API backed by PostgreSQL and Flyway, with a Vite React frontend served either locally or behind an NGINX reverse proxy.
+Production-grade fabric roll and garment lot lifecycle tracking system. Built for tenant-aware operations with a Spring Boot API backed by PostgreSQL, Flyway migrations, and a mobile-first React frontend.
 
 ## Final architecture
 
 - Backend: Java 17, Spring Boot 3.1.6, Spring Data JPA, Spring Security
-- Database: PostgreSQL with Flyway-driven schema setup and demo seed data
-- Frontend: React + TypeScript + Vite
-- Tenant model: X-Tenant-ID request header plus request-scoped tenant context
-- Deployment model: EC2 Ubuntu host with systemd service on port 8081 and NGINX proxying HTTPS traffic to the app
+- Database: PostgreSQL with Flyway-driven schema setup and seed data
+- Frontend: React + TypeScript + Vite (mobile-first, collapsible sections, search)
+- Tenant model: X-Tenant-ID header + request-scoped ThreadLocal context + Postgres RLS
+- Deployment: EC2 Ubuntu with systemd service on port 8081, NGINX reverse proxy for HTTPS
 
-## Core workflow
+## Production workflow
 
-Fabric rolls and production lots move through the following stages:
+```
+RECEIVED → CUTTING → STITCHING → WASHING → FINISHING → DISPATCHED
+```
 
-- RECEIVED
-- CUTTING
-- STITCHING
-- WASHING
-- FINISHING
-- PACKING
-- COMPLETED
-- DISPATCHED
+Each stage transition is recorded in lot_stage_history with a timestamp and quantity.
 
-The application records stage movement and exposes current lot and roll data for the active tenant.
+### Stage behavior
+
+| Stage | In Progress shows | Eligible shows | Move action |
+|-------|-------------------|-----------------|-------------|
+| Cutting | Lots currently being cut | Available fabric rolls | Create lot from roll (roll is consumed) |
+| Stitching | Lots in STITCHING | Lots in CUTTING | Move to Washing |
+| Washing | Lots in WASHING | Lots in STITCHING | Move to Finishing |
+| Finishing | Lots in FINISHING | Lots in WASHING | Dispatch to Warehouse |
+| Warehouse | DISPATCHED + WAREHOUSE lots | — | Final stage |
+
+### Key rules
+
+- Moving a roll to Cutting creates a lot and **deletes the source roll** (roll is fully consumed).
+- In-progress items can be advanced to the next stage from their own tab.
+- Eligible items can be brought into the current stage from the previous stage's tab.
+- Lot detail pages are read-only (view history, sizes, metadata) — no stage changes from there.
 
 ## Repository layout
 
-- Backend source: src/main/java/com/futurezminds/inventory
-- Configuration: src/main/resources/application.properties
-- Database migrations: src/main/resources/db/migration
-- Frontend source: frontend/
-- Tenant enforcement: src/main/java/com/futurezminds/inventory/tenant
+```
+src/main/java/com/futurezminds/inventory/
+  controller/     REST endpoints (lots, rolls)
+  service/        Business logic (create lot, move stage)
+  entity/         JPA entities (Lot, Roll, ProductionStage, LotStageHistory)
+  repository/     Spring Data repositories
+  tenant/         TenantContext (ThreadLocal) + TenantFilter (header → context)
+  security/       CORS + security config
+  bootstrap/      StageSeeder (seeds demo data on first run)
 
-## Database and migration model
+src/main/resources/
+  db/migration/   Flyway SQL migrations (V1 init, V2 seed, V3 RLS, V4 roll metadata)
 
-PostgreSQL is the source of truth. Flyway runs on startup and applies the migration files in src/main/resources/db/migration.
+frontend/src/
+  pages/          Home, RollInventory, Cutting, Stitching, Washing, Finishing, Warehouse, LotDetail
+  pages/StageSection.tsx    Reusable stage view (In Progress + Eligible + search)
+  pages/CreateLotSheet.tsx  Lot creation form (used by Cutting + RollInventory)
+  pages/StageHistorySheet.tsx  Stage transition history viewer
+  pages/CollapsibleSection.tsx  Collapsible section wrapper
+  api.ts          API client with tenant header
+  search.ts       Client-side search helpers
+  dateUtils.ts    Date formatting, age badges, oldest-first sorting
+  icons.tsx       Shared SVG icon components
+```
 
-Included migrations:
+## Database
 
-- V1__init.sql: core schema for production stages, lots, history, and rolls
-- V2__seed_sample_data.sql: demo tenant sample lots and rolls
-- V3__enable_rls.sql: row-level security setup for tenant isolation
+PostgreSQL is the source of truth. Flyway runs on startup and applies migrations in order.
 
-## Tenant behavior
+| Migration | Purpose |
+|-----------|---------|
+| V1 | Core schema: stages, lots, history, rolls |
+| V2 | Demo tenant seed data |
+| V3 | Row-level security for tenant isolation |
+| V4 | Roll brand + created_at metadata |
 
-Every API request is expected to carry the X-Tenant-ID header. The tenant filter resolves the active tenant for the request and constrains data access to that tenant.
+## Tenant model
 
-This design is compatible with multi-tenant operations and Postgres row-level security patterns.
+Every request carries `X-Tenant-ID` header. `TenantFilter` resolves it into a `ThreadLocal` (`TenantContext`) and sets a Postgres session variable for RLS. When auth is added, the tenant should be derived from the authenticated principal instead of the raw header.
 
 ## Local development
 
-### 1. Start PostgreSQL
-
 ```bash
+# Start PostgreSQL
 docker run --name inventory-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
-```
 
-### 2. Run the backend
-
-```bash
+# Run backend
 mvn clean package
 mvn spring-boot:run
-```
 
-The runtime uses these environment overrides if needed:
-
-- DB_URL
-- DB_USERNAME
-- DB_PASSWORD
-
-Default configuration is PostgreSQL on localhost:5432 with the inventory_db database.
-
-### 3. Run the frontend
-
-```bash
+# Run frontend (in another terminal)
 cd frontend
 npm install --legacy-peer-deps
 npm run dev
 ```
 
-The frontend dev server runs on http://localhost:5173 and defaults to the local backend at http://localhost:8081/api unless VITE_API_BASE is provided.
+Frontend dev: http://localhost:5173 → proxies to http://localhost:8081/api
 
-## Important API endpoints
+## Production deployment
 
-- GET /api/lots — list lots for the active tenant
-- POST /api/lots — create a lot
-- POST /api/lots/{id}/move — stage movement and history entry
-- GET /api/lots/{id}/history — lot history
-- GET /api/rolls — list rolls for the active tenant
-
-## Seed data
-
-The project seeds sample lot and roll data for the demo tenant as part of the migration flow. That provides immediate data visibility and validates the tenant-aware API without relying on an H2 in-memory database.
-
-## Production deployment assumptions
-
-- PostgreSQL is the runtime database.
-- Flyway is enabled and manages schema creation and seed data.
-- The app is deployed as a single service behind port 8081.
-- NGINX terminates HTTPS and proxies requests to the backend on /api.
-- The frontend can either call the same host /api or use VITE_API_BASE override for custom routing.
-
-## Verification and status
-
-The project is configured as a PostgreSQL-backed production application rather than a demo-only H2 setup. The Java build is validated with Maven, and the live backend is expected to run on port 8081 in a managed EC2 environment.
-
-### Backend
-
-```bash
-mvn -DskipTests package
-mvn spring-boot:run
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The default frontend API target is:
-
-- Local dev: http://localhost:8081/api
-- Production domain: same-origin /api when served from the deployed site
-- Override: set VITE_API_BASE to a custom backend URL
+- Backend runs as a systemd service on port 8081
+- NGINX terminates HTTPS and proxies `/api/*` to the backend
+- Frontend static files served from `/var/www/html`
+- Deploy: `git push` → SSH to EC2 → `git pull && mvn -DskipTests package && sudo systemctl restart inventory-app`

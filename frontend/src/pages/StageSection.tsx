@@ -18,6 +18,12 @@ type StageSectionProps = {
   stageColor?: string
 }
 
+// Reusable stage view for Stitching, Washing, and Finishing.
+// Shows two collapsible sections: In Progress (current stage) and Eligible (previous stage, ready to move in).
+// Tapping an in-progress item opens a sheet to advance it to the next stage.
+// Tapping an eligible item opens a sheet to bring it into this stage.
+// Supports search across lot number, brand, fabricator, and other metadata.
+
 export default function StageSection({ title, fromStage, toStage, nextStage, nextLabel, actionLabel, extraField, stageColor = 'var(--primary)' }: StageSectionProps) {
   const [inProgress, setInProgress] = useState<any[]>([])
   const [eligible, setEligible] = useState<any[]>([])
@@ -70,6 +76,10 @@ export default function StageSection({ title, fromStage, toStage, nextStage, nex
   const filteredInProgress = inProgress.filter(l => matchesLotSearch(l, search))
   const filteredEligible = eligible.filter(l => matchesLotSearch(l, search))
   const total = inProgress.length + eligible.length
+
+  // Eligible lots are moved INTO this stage (e.g. from CUTTING into STITCHING)
+  // In-progress lots are moved OUT to the next stage (e.g. STITCHING → WASHING)
+  const eligibleLabel = `Bring into ${title}`
 
   return (
     <div>
@@ -195,7 +205,7 @@ export default function StageSection({ title, fromStage, toStage, nextStage, nex
 
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-ghost btn-full" onClick={() => { setActiveLot(null); setExtraValue('') }}>Cancel</button>
-              <button className="btn btn-success btn-full" onClick={handleMove} disabled={moving}>{moving ? 'Moving…' : actionLabel}</button>
+              <button className="btn btn-success btn-full" onClick={handleMove} disabled={moving}>{moving ? 'Moving…' : eligibleLabel}</button>
             </div>
           </div>
         </div>

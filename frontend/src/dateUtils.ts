@@ -1,3 +1,7 @@
+// Date utilities for lot aging, formatting, and sorting.
+// stageSince() picks the best available date (updatedAt for stage entry, createdAt as fallback).
+// ageBadgeClass() returns a color-coded badge class based on how long a lot has been in its current stage.
+
 export function stageSince(lot: any): string | undefined {
   return lot.updatedAt || lot.createdAt
 }

@@ -51,6 +51,13 @@ export async function moveLot(id: string, payload: any) {
   return res.json()
 }
 
+// Corrects lot metadata (brand, fit type, fabricator, washer, finisher, quantity) without changing stage.
+export async function updateLot(id: string, payload: any) {
+  const res = await fetch(`${API_BASE}/lots/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...tenantHeader() }, body: JSON.stringify(payload) })
+  if (!res.ok) throw new Error('Update lot failed')
+  return res.json()
+}
+
 export async function fetchHistory(id: string) {
   const res = await fetch(`${API_BASE}/lots/${id}/history`, { headers: tenantHeader() })
   if (!res.ok) throw new Error('Failed to fetch history')
@@ -73,5 +80,10 @@ export async function createRoll(payload:any){
   const res = await fetch(`${API_BASE}/rolls`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...tenantHeader() }, body: JSON.stringify(payload) })
   if (!res.ok) { const t = await res.text().catch(()=>''); throw new Error(t || 'Failed to create roll') }
   return res.json()
+}
+
+export async function deleteRoll(id: number | string) {
+  const res = await fetch(`${API_BASE}/rolls/${id}`, { method: 'DELETE', headers: tenantHeader() })
+  if (!res.ok) throw new Error('Failed to delete roll')
 }
 

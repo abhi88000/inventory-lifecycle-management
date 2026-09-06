@@ -113,3 +113,22 @@ export function SearchIcon() {
     </svg>
   )
 }
+
+export function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 7.5h14M9.5 7.5V5.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M7 7.5 7.8 19a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4l.8-11.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M10.2 11v6M13.8 11v6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+export function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M14.5 5.5 18.5 9.5 8 20H4v-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M13 7 17 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  )
+}

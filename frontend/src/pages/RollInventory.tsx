@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { fetchRolls, createRoll } from '../api'
+import { fetchRolls, createRoll, deleteRoll } from '../api'
 import { formatAge, formatDate, ageBadgeClass } from '../dateUtils'
-import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon } from '../icons'
+import { FabricIcon, BrandTagIcon, CalendarIcon, RulerIcon, TrashIcon } from '../icons'
 import CreateLotSheet from './CreateLotSheet'
 
 type Props = { onSelectRoll?: (roll: any) => void; selectMode?: boolean }
@@ -15,6 +15,8 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
   const [search, setSearch] = useState('')
   const [form, setForm] = useState({ rollNumber: '', fabric: '', brand: '', length: '' })
   const [moveRoll, setMoveRoll] = useState<any | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   async function load() {
     setLoading(true); setError(null)
@@ -32,6 +34,16 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
       setShowAdd(false); setForm({ rollNumber: '', fabric: '', brand: '', length: '' }); await load()
     } catch (e: any) { setError(String(e)) }
     finally { setSaving(false) }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true); setError(null)
+    try {
+      await deleteRoll(deleteTarget.id)
+      setDeleteTarget(null); await load()
+    } catch (e: any) { setError(String(e)) }
+    finally { setDeleting(false) }
   }
 
   const filtered = rolls.filter(r =>
@@ -104,6 +116,17 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
                 </div>
                 <span className={`badge ${ageBadgeClass(r.createdAt)}`} style={{ fontSize: 11 }}>{formatAge(r.createdAt) || 'Available'}</span>
                 {!selectMode && <div style={{ fontSize: 12, color: 'var(--primary)', marginTop: 4 }}>Move to Cutting →</div>}
+                {!selectMode && (
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ marginTop: 6, color: 'var(--danger)', padding: '4px 8px' }}
+                    onClick={e => { e.stopPropagation(); setDeleteTarget(r) }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ width: 14, height: 14 }}><TrashIcon /></span> Delete
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -152,6 +175,25 @@ export default function RollInventory({ onSelectRoll, selectMode = false }: Prop
                 <button type="submit" className="btn btn-primary btn-full" disabled={saving}>{saving ? 'Saving…' : 'Save Roll'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) setDeleteTarget(null) }}>
+          <div className="sheet">
+            <div className="sheet-handle" />
+            <p className="sheet-title">Delete Roll</p>
+            <div className="card" style={{ background: 'var(--bg)', marginBottom: 16 }}>
+              <div style={{ fontWeight: 700 }}>{deleteTarget.rollNumber}</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>{deleteTarget.fabric} · {deleteTarget.length} m</div>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>This roll will be permanently removed from inventory. This cannot be undone.</p>
+            {error && <div className="alert-error">{error}</div>}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-ghost btn-full" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn btn-danger btn-full" onClick={handleDelete} disabled={deleting}>{deleting ? 'Deleting…' : 'Delete Roll'}</button>
+            </div>
           </div>
         </div>
       )}

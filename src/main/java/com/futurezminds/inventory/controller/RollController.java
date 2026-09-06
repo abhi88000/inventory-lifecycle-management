@@ -38,4 +38,15 @@ public class RollController {
         var saved = rollRepository.save(payload);
         return ResponseEntity.ok(saved);
     }
+
+    // Deletes a roll from inventory (e.g. entered by mistake, or no longer usable).
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteRoll(@PathVariable Long id) {
+        String tenant = TenantContext.getTenantId();
+        if (tenant == null) return ResponseEntity.status(400).body("Missing tenant");
+        var opt = rollRepository.findById(id);
+        if (opt.isEmpty() || !tenant.equals(opt.get().getTenantId())) return ResponseEntity.notFound().build();
+        rollRepository.delete(opt.get());
+        return ResponseEntity.noContent().build();
+    }
 }

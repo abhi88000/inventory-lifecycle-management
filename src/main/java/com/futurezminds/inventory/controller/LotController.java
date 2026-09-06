@@ -2,6 +2,7 @@ package com.futurezminds.inventory.controller;
 
 import com.futurezminds.inventory.dto.CreateLotRequest;
 import com.futurezminds.inventory.dto.MoveLotRequest;
+import com.futurezminds.inventory.dto.UpdateLotRequest;
 import com.futurezminds.inventory.entity.Lot;
 import com.futurezminds.inventory.entity.ProductionStage;
 import com.futurezminds.inventory.repository.LotRepository;
@@ -108,6 +109,18 @@ public class LotController {
         var tenant = TenantContext.getTenantId();
         var hist = historyRepository.findByTenantIdAndLotIdOrderByChangedAtAsc(tenant, id);
         return ResponseEntity.ok(hist);
+    }
+
+    // Corrects lot metadata without changing its stage — fixes wrong details entered during a move.
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable UUID id, @RequestBody UpdateLotRequest req) {
+        try {
+            var updated = service.updateLot(id, req.getBrand(), req.getFitType(), req.getFabricator(),
+                    req.getWasher(), req.getFinisher(), req.getCurrentQuantity(), "system");
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/history/stage/{stageName}")

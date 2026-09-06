@@ -142,4 +142,22 @@ public class LotService {
 
         return lot;
     }
+
+    // Corrects lot metadata (brand, fit type, fabricator, washer, finisher, quantity) without
+    // moving the stage or touching history — used to fix mistakes made during a stage move.
+    public Lot updateLot(UUID lotId, String brand, String fitType, String fabricator, String washer, String finisher, Integer currentQuantity, String user) {
+        String tenant = TenantContext.getTenantId();
+        Lot lot = lotRepository.findById(lotId).orElseThrow(() -> new IllegalArgumentException("Lot not found"));
+        if (!tenant.equals(lot.getTenantId())) throw new IllegalArgumentException("Lot not found");
+
+        if (brand != null) lot.setBrand(brand);
+        if (fitType != null) lot.setFitType(fitType);
+        if (fabricator != null) lot.setFabricator(fabricator);
+        if (washer != null) lot.setWasher(washer);
+        if (finisher != null) lot.setFinisher(finisher);
+        if (currentQuantity != null) lot.setCurrentQuantity(currentQuantity);
+        lot.setUpdatedAt(OffsetDateTime.now());
+        lot.setUpdatedBy(user);
+        return lotRepository.save(lot);
+    }
 }

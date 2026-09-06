@@ -77,7 +77,7 @@ export default function CreateLotSheet({ roll, onClose, onCreated, title = 'Crea
           <div className="form-group">
             <label className="form-label">Fit Type</label>
             <select className="form-control" value={form.fitType} onChange={e => setForm(f => ({ ...f, fitType: e.target.value }))}>
-              {['Slim', 'Regular', 'Relaxed', 'Skinny'].map(ft => <option key={ft}>{ft}</option>)}
+              {['Ankle', 'Regular', 'Comfort', 'Straight', 'Baggy'].map(ft => <option key={ft}>{ft}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
